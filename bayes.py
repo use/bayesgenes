@@ -84,6 +84,16 @@ def classify_item(bayes_model, item):
 def build_bayesian_model(rows, label_attr, columns, ignored_columns, ignored_values):
     model = []
     attributes = [c for c in columns if c not in ignored_columns and c != label_attr]
+    # build the list of all values for all attributes
+    attribute_values = {}
+    for attribute in attributes:
+        values = []
+        for row in rows:
+            value = row[attribute]
+            if value not in values and value not in ignored_values:
+                values.append(value)
+        attribute_values[attribute] = values
+
     # find all labels
     labels = list(set([item[label_attr] for item in rows]))
     for label in labels:
@@ -96,18 +106,21 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, ignored_val
         # go through attributes
         for attribute in attributes:
             value_counts = {}
+
+            # start with 1: Laplacian correction
+            for value in attribute_values[attribute]:
+                value_counts[value] = 1
+
             # count number of items with this class label for each value on this attribute
             for row in items_with_label:
                 value = row[attribute]
                 if value in ignored_values:
                     continue
-                if value in value_counts:
-                    value_counts[value] += 1
-                else:
-                    value_counts[value] = 1
+                value_counts[value] += 1
+
             value_likelihoods = {}
             for value in value_counts:
-                value_likelihoods[value] = value_counts[value] / len(items_with_label)
+                value_likelihoods[value] = value_counts[value] / (len(items_with_label) + 1)
 
             label['attributes'].append({
                 'title': attribute,
