@@ -1,4 +1,5 @@
 import csv
+import json
 import pprint
 
 # def processnode(node, attributes_remaining, label_attr):
@@ -58,7 +59,7 @@ bayes_model = [
     },
 ]
 
-def classify_item(bayes_model, item):
+def classify_item(bayes_model, item, ignored_values):
     # for each class, find likelihood item is in that class
     class_likelihoods = []
     for class_label in bayes_model:
@@ -66,17 +67,23 @@ def classify_item(bayes_model, item):
         for attribute in class_label['attributes']:
             title = attribute['title']
             value = item[title]
+            if value in ignored_values:
+                continue
+            # ignore this attribute if value not found in training
+            if value not in attribute['likelihoods']:
+                continue
             prob = attribute['likelihoods'][value]
             product *= prob
-        likelihoods.append(
+        class_likelihoods.append(
             {
                 'class': class_label['title'],
                 'likelihood': product,
             }
         )
-    selected_class = null
+
+    selected_class = None
     for class_label in class_likelihoods:
-        if selected_class is null or class_label['likelihood'] > selected_class['likelihood']:
+        if selected_class is None or class_label['likelihood'] > selected_class['likelihood']:
             selected_class = class_label
 
     return selected_class
@@ -118,13 +125,18 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, ignored_val
                     continue
                 value_counts[value] += 1
 
+            items_counted = sum(value_counts.values())
+
+
             value_likelihoods = {}
             for value in value_counts:
-                value_likelihoods[value] = value_counts[value] / (len(items_with_label) + 1)
+                value_likelihoods[value] = value_counts[value] / (items_counted)
 
             label['attributes'].append({
                 'title': attribute,
                 'likelihoods': value_likelihoods,
+                'value_counts': value_counts,
+                'items_counted': items_counted,
             })
         model.append(label)
 
@@ -136,8 +148,54 @@ if __name__ == '__main__':
         reader = csv.DictReader(csvfile)
         for row in reader:
             rows.append(row)
-    print(len(rows))
-    print(rows[0])
+    print(f"Rows in training data: {len(rows)}")
+    print(f"Sample row: {rows[0]}")
+
     columns = rows[0].keys()
     model = build_bayesian_model(rows, 'Localization', columns, ['GeneID', 'Function'], '?')
-    pprint.pprint(model)
+
+    with open('data/model.json', 'w') as file:
+        file.write(json.dumps(model, indent=4))
+
+    print("Model built")
+
+    # get test data
+    tests = []
+    with open('data/Genes_relation.test', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            tests.append(row)
+
+    print(f"Test cases found: {len(tests)}")
+
+    # apply model to test items
+    predictions = []
+    for test in tests:
+        test['prediction'] = classify_item(model, test, ['?'])
+        predictions.append(test)
+
+    # get keys
+    keys = {}
+    with open('data/keys.txt', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            keys[row['GeneID']] = row['Localization']
+
+    num_total = len(predictions)
+    num_correct = 0
+    label_accuracies = {}
+    for prediction in predictions:
+        correct_label = keys[prediction['GeneID']]
+        if correct_label not in label_accuracies:
+            label_accuracies[correct_label] = {
+                'actual': 0,
+                'predicted': 0,
+            }
+        label_accuracies[correct_label]['predicted'] += 1
+        if prediction['prediction']['class'] == correct_label:
+            num_correct += 1
+            
+
+    print(f"Total tested: {num_total}")
+    print(f"Correct: {num_correct}")
+    print(f"Accuracy: {num_correct/num_total}")
