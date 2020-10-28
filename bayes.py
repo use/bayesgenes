@@ -1,6 +1,5 @@
 import csv
 import json
-import pprint
 
 def classify_item(bayes_model, item, ignored_values):
     # for each class, find likelihood item is in that class
