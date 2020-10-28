@@ -21,11 +21,12 @@ def classify_item(bayes_model, item, ignored_values):
             'likelihood': product,
         })
 
+    highest_likelihood = 0
     # select class with highest score
-    selected_class = None
     for class_label in class_likelihoods:
-        if selected_class is None or class_label['likelihood'] > selected_class['likelihood']:
-            selected_class = class_label
+        if class_label['likelihood'] > highest_likelihood:
+            highest_likelihood = class_label['likelihood']
+            selected_class = class_label['class']
 
     return selected_class
 
@@ -131,7 +132,7 @@ if __name__ == '__main__':
     with open('predictions.csv', 'w') as csvfile:
         writer = csv.writer(csvfile)
         for row in predictions:
-            writer.writerow([row['GeneID'], row['prediction']['class']])
+            writer.writerow([row['GeneID'], row['prediction']])
 
     # get keys
     keys = {}
@@ -162,7 +163,7 @@ if __name__ == '__main__':
     num_correct = 0
     for prediction in predictions:
         correct_label = keys[prediction['GeneID']]
-        predicted_label = prediction['prediction']['class']
+        predicted_label = prediction['prediction']
         label_stats[predicted_label]['predicted'] += 1
         label_stats[correct_label]['actual'] += 1
         if predicted_label == correct_label:
