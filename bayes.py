@@ -110,7 +110,8 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, ignored_val
             'likelihood': len(items_with_label) / len(rows),
             'attributes': [],
         }
-        # go through attributes
+
+        # find likelihoods for each attribute
         for attribute in attributes:
             value_counts = {}
 
@@ -118,7 +119,7 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, ignored_val
             for value in attribute_values[attribute]:
                 value_counts[value] = 1
 
-            # count number of items with this class label for each value on this attribute
+            # count number of times each value occurs
             for row in items_with_label:
                 value = row[attribute]
                 if value in ignored_values:
@@ -127,7 +128,7 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, ignored_val
 
             items_counted = sum(value_counts.values())
 
-
+            # calculate 
             value_likelihoods = {}
             for value in value_counts:
                 value_likelihoods[value] = value_counts[value] / (items_counted)
@@ -143,21 +144,27 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, ignored_val
     return model
 
 if __name__ == '__main__':
+
+    # get training data
     rows = []
     with open('data/Genes_relation.data', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             rows.append(row)
-    print(f"Rows in training data: {len(rows)}")
-    print(f"Sample row: {rows[0]}")
 
+    print(f"Rows in training data: {len(rows)}")
+
+    # build model
     columns = rows[0].keys()
     model = build_bayesian_model(rows, 'Localization', columns, ['GeneID', 'Function'], '?')
 
+    print("Model built")
+
+    # save model for inspection
     with open('data/model.json', 'w') as file:
         file.write(json.dumps(model, indent=4))
+        print(f"Model saved to data/model.json")
 
-    print("Model built")
 
     # get test data
     tests = []
@@ -181,20 +188,71 @@ if __name__ == '__main__':
         for row in reader:
             keys[row['GeneID']] = row['Localization']
 
-    num_total = len(predictions)
-    num_correct = 0
-    label_accuracies = {}
-    for prediction in predictions:
-        correct_label = keys[prediction['GeneID']]
-        if correct_label not in label_accuracies:
-            label_accuracies[correct_label] = {
+    # set up stats and count actual occurrences
+    stats = {
+        'total_tested': len(predictions),
+    }
+    label_stats = {}
+    for key in keys:
+        label = keys[key]
+        if label not in label_stats:
+            label_stats[label] = {
                 'actual': 0,
                 'predicted': 0,
+                'true_positive': 0,
+                'true_negative': 0,
+                'false_positive': 0,
+                'false_negative': 0,
             }
-        label_accuracies[correct_label]['predicted'] += 1
-        if prediction['prediction']['class'] == correct_label:
+
+    # check accuracy
+    num_total = len(predictions)
+    num_correct = 0
+    for prediction in predictions:
+        correct_label = keys[prediction['GeneID']]
+        predicted_label = prediction['prediction']['class']
+        label_stats[predicted_label]['predicted'] += 1
+        label_stats[correct_label]['actual'] += 1
+        if predicted_label == correct_label:
             num_correct += 1
-            
+            label_stats[correct_label]['true_positive'] += 1
+            for other_label in label_stats:
+                if other_label != correct_label:
+                    label_stats[other_label]['true_negative'] += 1
+        else:
+            label_stats[predicted_label]['false_positive'] += 1
+            label_stats[correct_label]['false_negative'] += 1
+            for other_label in label_stats:
+                if other_label != correct_label and other_label != predicted_label:
+                    label_stats[other_label]['true_negative'] += 1
+
+    # detailed per-class stats
+    for label in label_stats:
+        s = label_stats[label]
+        s['sum'] = s['false_positive'] + s['false_negative'] + s['true_positive'] + s['true_negative']
+        s['accuracy'] = (s['true_positive'] + s['true_negative']) / num_total
+        s['sensitivity'] = s['true_positive'] / s['actual']
+        s['specificity'] = s['true_negative'] / (num_total - s['actual'])
+        try:
+            s['precision'] = s['true_positive'] / (s['true_positive'] + s['false_positive'])
+        except:
+            s['precision'] = None
+
+        try:
+            s['recall'] = s['true_positive'] / (s['true_positive'] + s['false_negative'])
+        except:
+            s['recall'] = None
+
+        try:
+            s['f_measure'] = 2 * s['precision'] * s['recall'] / (s['precision'] + s['recall'])
+        except:
+            s['f_measure'] = None
+
+    # save stats
+    stats['labels'] = label_stats
+    with open('data/stats.json', 'w') as file:
+        file.write(json.dumps(stats, indent=4))
+        print(f"Stats saved to data/stats.json")
 
     print(f"Total tested: {num_total}")
     print(f"Correct: {num_correct}")
