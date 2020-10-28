@@ -127,6 +127,12 @@ if __name__ == '__main__':
         test['prediction'] = classify_item(model, test, ['?'])
         predictions.append(test)
 
+    # save predictions
+    with open('predictions.csv', 'w') as csvfile:
+        writer = csv.writer(csvfile)
+        for row in predictions:
+            writer.writerow([row['GeneID'], row['prediction']['class']])
+
     # get keys
     keys = {}
     with open('data/keys.txt', newline='') as csvfile:
