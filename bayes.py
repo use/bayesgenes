@@ -109,9 +109,9 @@ if __name__ == '__main__':
     print("Model built")
 
     # save model for inspection
-    with open('data/model.json', 'w') as file:
+    with open('model.json', 'w') as file:
         file.write(json.dumps(model, indent=4))
-        print(f"Model saved to: data/model.json")
+        print(f"Model saved to: model.json")
 
     # get test data
     tests = []
@@ -197,9 +197,9 @@ if __name__ == '__main__':
 
     # save stats
     stats['labels'] = label_stats
-    with open('data/stats.json', 'w') as file:
+    with open('stats.json', 'w') as file:
         file.write(json.dumps(stats, indent=4))
-        print(f"Stats saved to: data/stats.json")
+        print(f"Stats saved to: stats.json")
 
     print(f"Total tested: {num_total}")
     print(f"Correct: {num_correct}")
