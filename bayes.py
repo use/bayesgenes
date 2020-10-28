@@ -2,63 +2,6 @@ import csv
 import json
 import pprint
 
-# def processnode(node, attributes_remaining, label_attr):
-#     splitting_attr = null
-#     highest_gain = 0
-#     for attr in attributes_remaining:
-#         gain = calc_gain(node.data, attr, label_attr)
-#         if gain > highest_gain:
-#             splitting_attr = attr
-
-#     partitions = partition_data(node.data, attr)
-#     attributes_remaining.remove(attr)
-#     for partition in partitions:
-#         child = node.addChild(partition.data, partition.attr_value)
-#         processnode(child, attributes_remaining, label_attr)
-#     return node
-
-
-item = {
-    'color': 'blue',
-    'size': 'medium',
-}
-
-training_data = {
-    'class_column': ['tier'],
-    'columns': ['color', 'size', 'weight', 'tier'],
-    'data': [
-        ['blue', 'large', 'heavy', 'Platinum'],
-        ['red', 'small', 'light', 'Bronze'],
-    ]
-}
-
-bayes_model = [
-    {
-        'title': 'Platinum',
-        'likelihood': .02,
-        'attributes': [
-            {
-                'title': 'color',
-                'likelihoods': {
-                    'blue': .01,
-                    'red': .05,
-                },
-            },
-            {
-                'title': 'size',
-                'likelihoods': {
-                    'large': .5,
-                    'medium': .25,
-                    'small': .02,
-                },
-            },
-        ],
-    },
-    {
-        'title': 'Bronze',
-    },
-]
-
 def classify_item(bayes_model, item, ignored_values):
     # for each class, find likelihood item is in that class
     class_likelihoods = []
@@ -74,13 +17,12 @@ def classify_item(bayes_model, item, ignored_values):
                 continue
             prob = attribute['likelihoods'][value]
             product *= prob
-        class_likelihoods.append(
-            {
-                'class': class_label['title'],
-                'likelihood': product,
-            }
-        )
+        class_likelihoods.append({
+            'class': class_label['title'],
+            'likelihood': product,
+        })
 
+    # select class with highest score
     selected_class = None
     for class_label in class_likelihoods:
         if selected_class is None or class_label['likelihood'] > selected_class['likelihood']:
@@ -156,15 +98,20 @@ if __name__ == '__main__':
 
     # build model
     columns = rows[0].keys()
-    model = build_bayesian_model(rows, 'Localization', columns, ['GeneID', 'Function'], '?')
+    model = build_bayesian_model(
+        rows,
+        'Localization',
+        columns,
+        ['GeneID', 'Function'],
+        '?'
+    )
 
     print("Model built")
 
     # save model for inspection
     with open('data/model.json', 'w') as file:
         file.write(json.dumps(model, indent=4))
-        print(f"Model saved to data/model.json")
-
+        print(f"Model saved to: data/model.json")
 
     # get test data
     tests = []
@@ -252,7 +199,7 @@ if __name__ == '__main__':
     stats['labels'] = label_stats
     with open('data/stats.json', 'w') as file:
         file.write(json.dumps(stats, indent=4))
-        print(f"Stats saved to data/stats.json")
+        print(f"Stats saved to: data/stats.json")
 
     print(f"Total tested: {num_total}")
     print(f"Correct: {num_correct}")
