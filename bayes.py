@@ -9,12 +9,14 @@ def classify_item(bayes_model, item, missing_value_indicators):
         for attribute in class_label['attributes']:
             title = attribute['title']
             value = item[title]
-            if value in missing_value_indicators:
+            if value in attribute['likelihoods']:
+                prob = attribute['likelihoods'][value]
+            # if value missing, use probability of most likely value
+            elif value in missing_value_indicators:
+                prob = max([attribute['likelihoods'][key] for key in attribute['likelihoods']])
+            # ignore this attribute if value not found in training, and wasn't missing
+            else:
                 continue
-            # ignore this attribute if value not found in training
-            if value not in attribute['likelihoods']:
-                continue
-            prob = attribute['likelihoods'][value]
             product *= prob
         class_likelihoods.append({
             'class': class_label['title'],
