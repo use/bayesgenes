@@ -75,11 +75,22 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, missing_val
             for value in value_counts:
                 value_likelihoods[value] = value_counts[value] / (items_counted)
 
+            # chart for value counts
+            value_list = [{'title': key, 'count': value_counts[key]} for key in value_counts]
+            value_list.sort(key=lambda item: -1 * item['count'])
+            value_max = max([value['count'] for value in value_list])
+            value_chart = []
+            for value in value_list:
+                num_bars = 1 + round(21 * (value['count'] - 1) / value_max)
+                bar_text = f"{'|' * num_bars}  {value['title']}"
+                value_chart.append(bar_text)
+
             label['attributes'].append({
                 'title': attribute,
                 'likelihoods': value_likelihoods,
                 'value_counts': value_counts,
                 'items_counted': items_counted,
+                'value_chart': value_chart,
             })
         model.append(label)
 
