@@ -10,11 +10,14 @@ def classify_item(bayes_model, item, missing_value_indicators):
             title = attribute['title']
             value = item[title]
             if value in missing_value_indicators:
-                continue
-            # ignore this attribute if value not found in training
-            if value not in attribute['likelihoods']:
-                continue
-            prob = attribute['likelihoods'][value]
+                # use average of known likelihoods
+                probs = [attribute['likelihoods'][key] for key in attribute['likelihoods']]
+                prob = sum(probs) / len(probs)
+            elif value in attribute['likelihoods']:
+                prob = attribute['likelihoods'][value]
+            else:
+                # item has value not seen in training -> use laplacian correction
+                prob = 1 / (attribute['items_counted'] + 1)
             product *= prob
         class_likelihoods.append({
             'class': class_label['title'],
