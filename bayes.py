@@ -113,7 +113,7 @@ if __name__ == '__main__':
         rows,
         'Localization',
         columns,
-        ['GeneID', 'Function'],
+        ['GeneID', 'Function', 'Chromosome'],
         '?'
     )
 
