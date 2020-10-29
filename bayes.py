@@ -1,7 +1,7 @@
 import csv
 import json
 
-def classify_item(bayes_model, item, ignored_values):
+def classify_item(bayes_model, item, missing_value_indicators):
     # for each class, find likelihood item is in that class
     class_likelihoods = []
     for class_label in bayes_model:
@@ -9,7 +9,7 @@ def classify_item(bayes_model, item, ignored_values):
         for attribute in class_label['attributes']:
             title = attribute['title']
             value = item[title]
-            if value in ignored_values:
+            if value in missing_value_indicators:
                 continue
             # ignore this attribute if value not found in training
             if value not in attribute['likelihoods']:
@@ -30,7 +30,7 @@ def classify_item(bayes_model, item, ignored_values):
 
     return selected_class
 
-def build_bayesian_model(rows, label_attr, columns, ignored_columns, ignored_values):
+def build_bayesian_model(rows, label_attr, columns, ignored_columns, missing_value_indicators):
     model = []
     attributes = [c for c in columns if c not in ignored_columns and c != label_attr]
     # build the list of all values for all attributes
@@ -39,7 +39,7 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, ignored_val
         values = []
         for row in rows:
             value = row[attribute]
-            if value not in values and value not in ignored_values:
+            if value not in values and value not in missing_value_indicators:
                 values.append(value)
         attribute_values[attribute] = values
 
@@ -64,7 +64,7 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, ignored_val
             # count number of times each value occurs
             for row in items_with_label:
                 value = row[attribute]
-                if value in ignored_values:
+                if value in missing_value_indicators:
                     continue
                 value_counts[value] += 1
 
