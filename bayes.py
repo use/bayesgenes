@@ -82,7 +82,7 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, missing_val
             value_chart = []
             for value in value_list:
                 num_bars = 1 + round(21 * (value['count'] - 1) / value_max)
-                bar_text = f"{'|' * num_bars}  {value['title']}"
+                bar_text = f"{'|' * num_bars}  {value['title']} ({value['count']})"
                 value_chart.append(bar_text)
 
             label['attributes'].append({
