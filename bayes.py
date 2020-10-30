@@ -114,7 +114,7 @@ if __name__ == '__main__':
         'Localization',
         columns,
         ['GeneID', 'Function', 'Chromosome'],
-        '?'
+        ['?']
     )
 
     print("Model built")
