@@ -152,7 +152,7 @@ if __name__ == '__main__':
         for row in reader:
             keys[row['GeneID']] = row['Localization']
 
-    # set up stats and count actual occurrences
+    # set up stats
     stats = {
         'total_tested': len(predictions),
     }
@@ -169,7 +169,7 @@ if __name__ == '__main__':
                 'false_negative': 0,
             }
 
-    # check accuracy
+    # count actual occurrences and check accuracy
     num_total = len(predictions)
     num_correct = 0
     for prediction in predictions:
