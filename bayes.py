@@ -1,23 +1,51 @@
 import csv
 import json
+from dataclasses import dataclass
+from typing import Dict, List
 
-def classify_item(bayes_model, item, missing_value_indicators):
+
+@dataclass
+class BayesModelAttribute:
+    title: str
+    likelihoods: Dict[str, float]
+    value_counts: Dict[str, int]
+    items_counted: int
+    value_chart: List[str]
+
+@dataclass
+class BayesModelLabel:
+    title: str
+    likelihood: float
+    attributes: List[BayesModelAttribute]
+
+    def to_dict(self) -> Dict:
+        return {
+            'title': self.title,
+            'likelihood': self.likelihood,
+            'attributes': [vars(attr) for attr in self.attributes]
+        }
+
+def classify_item(
+        bayes_model: List[BayesModelLabel],
+        item: Dict[str, str],
+        missing_value_indicators: List[str]
+    ):
     # for each class, find likelihood item is in that class
     class_likelihoods = []
     for class_label in bayes_model:
-        product = class_label['likelihood']
-        for attribute in class_label['attributes']:
-            title = attribute['title']
+        product = class_label.likelihood
+        for attribute in class_label.attributes:
+            title = attribute.title
             value = item[title]
             if value in missing_value_indicators:
                 continue
             # ignore this attribute if value not found in training
-            if value not in attribute['likelihoods']:
+            if value not in attribute.likelihoods:
                 continue
-            prob = attribute['likelihoods'][value]
+            prob = attribute.likelihoods[value]
             product *= prob
         class_likelihoods.append({
-            'class': class_label['title'],
+            'class': class_label.title,
             'likelihood': product,
         })
 
@@ -30,7 +58,13 @@ def classify_item(bayes_model, item, missing_value_indicators):
 
     return selected_class
 
-def build_bayesian_model(rows, label_attr, columns, ignored_columns, missing_value_indicators):
+def build_bayesian_model(
+        rows: List[Dict[str, str]],
+        label_attr: str,
+        columns: List[str],
+        ignored_columns: List[str],
+        missing_value_indicators: List[str]
+    ):
     model = []
     attributes = [c for c in columns if c not in ignored_columns and c != label_attr]
     # build the list of all values for all attributes
@@ -47,11 +81,11 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, missing_val
     labels = list(set([item[label_attr] for item in rows]))
     for label in labels:
         items_with_label = [r for r in rows if r[label_attr] == label]
-        label = {
-            'title': label,
-            'likelihood': len(items_with_label) / len(rows),
-            'attributes': [],
-        }
+        label = BayesModelLabel(
+            title = label,
+            likelihood = len(items_with_label) / len(rows),
+            attributes = []
+        )
 
         # find likelihoods for each attribute
         for attribute in attributes:
@@ -85,13 +119,13 @@ def build_bayesian_model(rows, label_attr, columns, ignored_columns, missing_val
                 bar_text = f"{'|' * num_bars}  {value['title']} ({value['count']})"
                 value_chart.append(bar_text)
 
-            label['attributes'].append({
-                'title': attribute,
-                'likelihoods': value_likelihoods,
-                'value_counts': value_counts,
-                'items_counted': items_counted,
-                'value_chart': value_chart,
-            })
+            label.attributes.append(BayesModelAttribute(
+                title = attribute,
+                likelihoods = value_likelihoods,
+                value_counts = value_counts,
+                items_counted = items_counted,
+                value_chart = value_chart,
+            ))
         model.append(label)
 
     return model
@@ -121,7 +155,7 @@ if __name__ == '__main__':
 
     # save model for inspection
     with open('model.json', 'w') as file:
-        file.write(json.dumps(model, indent=4))
+        file.write(json.dumps([m.to_dict() for m in model], indent=4))
         print(f"Model saved to: model.json")
 
     # get test data
