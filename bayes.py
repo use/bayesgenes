@@ -29,7 +29,7 @@ def classify_item(
         bayes_model: List[BayesModelLabel],
         item: Dict[str, str],
         missing_value_indicators: List[str]
-    ):
+) -> str:
     # for each class, find likelihood item is in that class
     class_likelihoods = []
     for class_label in bayes_model:
@@ -64,7 +64,7 @@ def build_bayesian_model(
         columns: List[str],
         ignored_columns: List[str],
         missing_value_indicators: List[str]
-    ):
+) -> List[BayesModelLabel]:
     model = []
     attributes = [c for c in columns if c not in ignored_columns and c != label_attr]
     # build the list of all values for all attributes
